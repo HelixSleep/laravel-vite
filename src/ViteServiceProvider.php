@@ -3,24 +3,17 @@
 namespace Innocenzi\Vite;
 
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\ServiceProvider;
 use Innocenzi\Vite\Commands\ExportConfigurationCommand;
 use Innocenzi\Vite\Commands\GenerateAliasesCommand;
 use Spatie\LaravelPackageTools\Package;
-use Spatie\LaravelPackageTools\PackageServiceProvider;
 
-class ViteServiceProvider extends PackageServiceProvider
+class ViteServiceProvider extends ServiceProvider
 {
-    public function configurePackage(Package $package): void
+    public function register()
     {
-        $package
-            ->name('laravel-vite')
-            ->hasConfigFile()
-            ->hasCommand(ExportConfigurationCommand::class)
-            ->hasCommand(GenerateAliasesCommand::class);
-    }
+        $this->mergeConfigFrom(__DIR__ . '/../config/vite.php', 'vite');
 
-    public function registeringPackage()
-    {
         $this->app->singleton(Vite::class, fn () => new Vite());
 
         Blade::directive('vite', function ($entryName = null) {
@@ -38,5 +31,15 @@ class ViteServiceProvider extends PackageServiceProvider
         Blade::directive('react', function () {
             return '<?php echo vite_react_refresh_runtime(); ?>';
         });
+    }
+
+    public function boot()
+    {
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                ExportConfigurationCommand::class,
+                GenerateAliasesCommand::class,
+            ]);
+        }
     }
 }
